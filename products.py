@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+
 class Product:
     def __init__(self, name, price, quantity):
         if name == "":
@@ -13,6 +15,7 @@ class Product:
         self._quantity = quantity
 
         self._active = True
+        self._promotion = None
 
     def get_quantity(self):
         return self._quantity
@@ -31,14 +34,26 @@ class Product:
     def deactivate(self):
         self._active = False
 
+    def get_promotion(self):
+        return self._promotion
+
+    def set_promotion(self, promotion):
+        self._promotion = promotion
+
     def show(self):
-        return (f"{self._name}, Price: {self._price}, Quantity: {self._quantity}")
+        promo_name = self._promotion._name if self._promotion else "None"
+        return (f"{self._name}, Price: {self._price}, "
+                f"Quantity: {self._quantity}, Promotion: {promo_name}")
+
 
     def buy(self, quantity):
         if quantity <= 0 or quantity > self._quantity:
             raise ValueError("Not enough product")
 
         self.set_quantity(self._quantity - quantity)
+
+        if self._promotion:
+            return self._promotion.apply_promotion(self, quantity)
 
         return self._price * quantity
 
@@ -69,13 +84,48 @@ class LimitedProduct(Product):
                 f"Quantity: {self._quantity}, Maximum per order: {self._maximum}")
 
 
+from abc import ABC, abstractmethod
+
+# ── Abstract base ──────────────────────────────────────────
+class Promotion(ABC):
+    def __init__(self, name):
+        self._name = name                 # blank 1
+
+    @abstractmethod
+    def apply_promotion(self, product, quantity):
+        pass
 
 
+class PercentDiscount(Promotion):
+    def __init__(self, name, percent):
+        super().__init__(name)
+        self._percent = percent
+
+    def apply_promotion(self, product, quantity):
+        return product._price * quantity * (1- self._percent/100)
 
 
+class SecondHalfPrice(Promotion):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def apply_promotion(self, product, quantity):
+        pairs = quantity // 2
+        leftover = quantity % 2
+
+        pair_cost = product._price + product._price / 2
+        leftover_cost = leftover * product._price
+
+        return  pairs * pair_cost + leftover_cost
 
 
+class ThirdOneFree(Promotion):
+    def __init__(self, name):
+        super().__init__(name)
 
+    def apply_promotion(self, product, quantity):
+        groups = quantity // 3
+        leftover = quantity % 3
 
-
-
+        paid_items = groups * 2 + leftover
+        return paid_items * product._price
