@@ -93,8 +93,12 @@ def make_order(store_obj):
 
         shopping_list.append((products_list[product_index], quantity))
 
-    total_price = store_obj.order(shopping_list)
-    print(f"\nOrder made! Total payment: ${total_price}")
+    try:
+        total_price = store_obj.order(shopping_list)
+        print(f"\nOrder made! Total payment: ${total_price}")
+
+    except ValueError as error:
+        print(f"\nError: {error}")
 
 
 # -----------------------------

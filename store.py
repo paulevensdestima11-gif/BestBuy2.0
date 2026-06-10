@@ -69,18 +69,60 @@ class Store:
 
     def order(self, shopping_list):
         """
-        Processes an order and returns total price.
+        Processes an order and returns the total price.
+
+        Products added multiple times are combined into a
+        single purchase before validation and pricing.
 
         Args:
-            shopping_list (list): List of (Product, quantity) tuples.
+            shopping_list (list):
+                List of (Product, quantity) tuples.
 
         Returns:
-            float: Total order cost.
+            float:
+                Total order cost.
+
+        Raises:
+            ValueError:
+                If stock is insufficient or a purchase limit
+                is exceeded.
         """
+        aggregated = {}
+
+        # Combine duplicate products
+        for product, quantity in shopping_list:
+            if product in aggregated:
+                aggregated[product] += quantity
+            else:
+                aggregated[product] = quantity
+
+        # Validate the entire order first
+        for product, quantity in aggregated.items():
+
+            if (
+                    isinstance(product, products.LimitedProduct)
+                    and quantity > product.get_maximum()
+            ):
+                raise ValueError(
+                    f"Cannot buy more than "
+                    f"{product.get_maximum()} "
+                    f"of {product._name}."
+                )
+
+            if (
+                    not isinstance(product, products.NonStockedProduct)
+                    and quantity > product.get_quantity()
+            ):
+                raise ValueError(
+                    f"Not enough stock for "
+                    f"{product._name}."
+                )
+
         total_price = 0
 
-        for item in shopping_list:
-            product, quantity = item
+        # Process purchases after validation
+        for product, quantity in aggregated.items():
             total_price += product.buy(quantity)
 
         return total_price
+

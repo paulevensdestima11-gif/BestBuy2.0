@@ -85,12 +85,14 @@ class Product:
         if quantity > self._quantity:
             raise ValueError("Not enough product in stock.")
 
+        if self._promotion:
+            total = self._promotion.apply_promotion(self, quantity)
+        else:
+            total = self._price * quantity
+
         self.set_quantity(self._quantity - quantity)
 
-        if self._promotion:
-            return self._promotion.apply_promotion(self, quantity)
-
-        return self._price * quantity
+        return total
 
 
 class NonStockedProduct(Product):
@@ -105,12 +107,30 @@ class NonStockedProduct(Product):
         """Disabled for non-stocked products."""
         pass
 
+    def buy(self, quantity):
+        """
+        Purchases a non-stocked product.
+
+        Since the product is not stocked, no stock validation
+        or quantity reduction is performed.
+        """
+        if quantity <= 0:
+            raise ValueError("Quantity must be greater than 0.")
+
+        if self._promotion:
+            return self._promotion.apply_promotion(self, quantity)
+
+        return self._price * quantity
+
     def show(self):
         """Returns display string for non-stocked product."""
+        promo_name = self._promotion._name if self._promotion else "None"
+
         return (
             f"{self._name}, "
             f"Price: {self._price}, "
-            "Not stocked"
+            f"Quantity: Unlimited, "
+            f"Promotion: {promo_name}"
         )
 
 
@@ -123,22 +143,36 @@ class LimitedProduct(Product):
         super().__init__(name, price, quantity)
         self._maximum = maximum
 
+    def get_maximum(self):
+        """
+        Returns the maximum quantity allowed per order.
+        """
+        return self._maximum
+
     def buy(self, quantity):
-        """Ensures purchase does not exceed maximum limit."""
+        """
+        Ensures purchase does not exceed maximum limit.
+        """
         if quantity > self._maximum:
             raise ValueError(
-                f"Cannot buy more than {self._maximum} of {self._name}."
+                f"Cannot buy more than {self._maximum} "
+                f"of {self._name}."
             )
 
         return super().buy(quantity)
 
     def show(self):
-        """Returns product info including max order limit."""
+        """
+        Returns product info including max order limit.
+        """
+        promo_name = self._promotion._name if self._promotion else "None"
+
         return (
             f"{self._name}, "
             f"Price: {self._price}, "
             f"Quantity: {self._quantity}, "
-            f"Maximum per order: {self._maximum}"
+            f"Maximum per order: {self._maximum}, "
+            f"Promotion: {promo_name}"
         )
 
 
